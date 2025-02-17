@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login, Register & Upload Produk</title>
+    <!-- Import Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtEoanL6lHukntfgUfMsJkaYnz9xm9bjM",
+            authDomain: "sing-ngerti.firebaseapp.com",
+            projectId: "sing-ngerti",
+            storageBucket: "sing-ngerti.firebasestorage.app",
+            messagingSenderId: "267585305824",
+            appId: "1:267585305824:web:b6b50afd33df877e2e6485",
+            measurementId: "G-6NT4XBZFGW"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Cek status login pengguna
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                document.getElementById('authContainer').classList.add('hidden');
+                document.getElementById('productContainer').classList.remove('hidden');
+            } else {
+                document.getElementById('authContainer').classList.remove('hidden');
+                document.getElementById('productContainer').classList.add('hidden');
+            }
+        });
+
+        // Fungsi untuk Register
+        function registerUser() {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    alert('Akun berhasil dibuat!');
+                })
+                .catch((error) => {
+                    alert('Gagal membuat akun: ' + error.message);
+                });
+        }
+
+        // Fungsi untuk Login
+        function loginUser() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    alert('Login berhasil!');
+                })
+                .catch((error) => {
+                    alert('Login gagal: ' + error.message);
+                });
+        }
+
+        // Fungsi untuk Logout
+        function logoutUser() {
+            signOut(auth).then(() => {
+                alert('Anda telah keluar');
+            });
+        }
+
+        // Handle Upload Produk
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const productName = document.getElementById('product_name').value;
+            const productDescription = document.getElementById('product_description').value;
+            const productPrice = document.getElementById('product_price').value;
+            const productImage = document.getElementById('product_image').files[0];
+
+            const storageRef = ref(storage, 'products/' + productImage.name);
+            await uploadBytes(storageRef, productImage);
+            const imageUrl = await getDownloadURL(storageRef);
+
+            await addDoc(collection(db, 'products'), {
+                name: productName,
+                description: productDescription,
+                price: productPrice,
+                image: imageUrl,
+            });
+
+            alert('Produk berhasil diupload!');
+        });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            width: 50%;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="authContainer">
+        <h2>Login atau Register</h2>
+        
+        <!-- Form Register -->
+        <div id="registerForm" class="auth-form">
+            <h3>Register</h3>
+            <label for="registerEmail">Email:</label>
+            <input type="email" id="registerEmail" required>
+            <label for="registerPassword">Password:</label>
+            <input type="password" id="registerPassword" required>
+            <button onclick="registerUser()">Register</button>
+        </div>
+
+        <!-- Form Login -->
+        <div id="loginForm" class="auth-form">
+            <h3>Login</h3>
+            <label for="loginEmail">Email:</label>
+            <input type="email" id="loginEmail" required>
+            <label for="loginPassword">Password:</label>
+            <input type="password" id="loginPassword" required>
+            <button onclick="loginUser()">Login</button>
+        </div>
+    </div>
+
+    <div class="container hidden" id="productContainer">
+        <h2>Upload Produk</h2>
+        <form id="productForm">
+            <label for="product_name">Nama Produk:</label>
+            <input type="text" id="product_name" required>
+
+            <label for="product_description">Deskripsi Produk:</label>
+            <textarea id="product_description" rows="4" required></textarea>
+
+            <label for="product_price">Harga Produk:</label>
+            <input type="number" id="product_price" required>
+
+            <label for="product_image">Gambar Produk:</label>
+            <input type="file" id="product_image" required>
+
+            <button type="submit">Unggah Produk</button>
+        </form>
+    </div>
+</body>
+</html>
